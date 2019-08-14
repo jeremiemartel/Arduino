@@ -15,7 +15,6 @@
 #define SERVER_OFFLINE	1
 
 EthernetServer	server(80);
-EthernetClient	client;
 
 // SOCKET pingSocket = 0;
 // ICMPPing ping(pingSocket, (uint16_t)random(0, 255));
@@ -81,9 +80,9 @@ void	parse_line(String line)
 // 	}
 // }
 
-void	send_css()
+void	send_css(EthernetClient client)
 {
-	client.println("/* Add your styles here */");
+	client.println("<style>");
 	client.println("body{");
 	client.println("  background-color:#f0ffff;");
 	client.println("}");
@@ -126,9 +125,10 @@ void	send_css()
 	client.println("  text-align: center;");
 	client.println("  font-size: 5vw;");
 	client.println("}");
+	client.println("</style>");
 }
 
-void	send_html()
+void	send_html(EthernetClient client)
 {
 	client.println("<!doctype html>");
 	client.println("<html>");
@@ -146,16 +146,16 @@ void	send_html()
 	client.println("</html>");
 }
 
-void	send_page()
+void	send_page(EthernetClient client)
 {
 	client.println("HTTP/1.1 200 OK");
 	client.println("Content-Type: text/html");
 	client.println();
-	send_css();
-	send_html();
+	send_css(client);
+	send_html(client);
 }
 
-int		read_request()
+int		read_request(EthernetClient client)
 {
 	String	line;
 	char	c;
@@ -170,7 +170,7 @@ int		read_request()
 			if (c == '\n')
 			{
 				parse_line(line);
-				send_page();
+				send_page(client);
 				return (0);
 			}
 		}
@@ -180,10 +180,12 @@ int		read_request()
 
 void	loop()
 {
+	EthernetClient	client;
+
 	if ((client = server.available()))
 	{
 		Serial.println("New client is here");
-		read_request();
+		read_request(client);
 		delay(100);
 		client.stop();
 		Serial.println("Client disconnected");
