@@ -1,49 +1,53 @@
 #include <SPI.h>
 #include <Ethernet.h>
-// #include <ICMPPing.h>
+#include <ICMPPing.h>
 
 #define RELAY_PORT		PD6		
 #define LINE_MAX		200
 
-#define MAC_ADDRESS		0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
-#define SELF_ADDRESS	169,254,25,141
-#define SERVER_ADDRESS	169,254,25,140
 // #define SELF_ADDRESS	192, 168, 0, 150
 // #define SERVER_ADDRESS	192, 168, 0, 50
 
 #define SERVER_ONLINE	0
 #define SERVER_OFFLINE	1
 
+byte		mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+
+IPAddress	card_ip(192,168,0,150);
+// IPAddress	card_ip(169,254,25,141);
+IPAddress	server_ip(192,168,0,50);
+//IPAddress	server_ip(169,254,25,140);
+
 EthernetServer	server(80);
 
-// SOCKET pingSocket = 0;
-// ICMPPing ping(pingSocket, (uint16_t)random(0, 255));
+SOCKET pingSocket = 0;
+ICMPPing ping(pingSocket, (uint16_t)random(0, 255));
 
-// short			server_status = 0;
+short			server_status = SERVER_ONLINE;
 
-// void		ping_server()
-// {
-// 	ICMPEchoReply echoReply = ping(IPAddress(SERVER_ADDRESS), 4);
-// 	if (echoReply.status == SUCCESS)
-// 	{
-// 		Serial.println("Server is Online");
-// 		server_status = SERVER_ONLINE;
-// 	}
-//  	else
-//  	{
-// 		Serial.println("Server is Offline");
-// 		server_status = SERVER_OFFLINE;
-// 	}
-// }
+void		ping_server()
+{
+	ICMPEchoReply echoReply = ping(server_ip, 4);
+	if (echoReply.status == PING_SUCCESS)
+	{
+		Serial.println("Server is Online");
+		server_status = SERVER_ONLINE;
+	}
+ 	else
+ 	{
+		Serial.println("Server is Offline");
+		server_status = SERVER_OFFLINE;
+	}
+}
 
 void	setup()
 {
-	byte mac[] = {MAC_ADDRESS};
-
 	Serial.begin(9600);
 	Serial.println("Serial communication started");
-	Ethernet.begin(mac, IPAddress(SELF_ADDRESS));
+
+	Ethernet.begin(mac, card_ip);
 	server.begin();
+	delay(100);
 	Serial.print("Server is online at : ");
 	Serial.println(Ethernet.localIP());
 }
@@ -64,21 +68,23 @@ void	parse_line(String line)
 	}
 	else if (line.indexOf("?ping") > 0)
 	{
-		// ping_server();
+		ping_server();
 	}
 }
 
-// void	show_status()
-// {
-// 	if (server_status == SERVER_ONLINE)
-// 	{
-// 		client.println();
-// 	}
-// 	else
-// 	{
-// 		client.println();
-// 	}
-// }
+void	show_status(EthernetClient client)
+{
+	client.print("    <div class='status'");
+	if (server_status == SERVER_ONLINE)
+	{
+		client.print(" style='background-color=green'>Online");
+	}
+	else
+	{
+		client.print(" style='background-color=red'>Offline");
+	}
+	client.println("</div>");
+}
 
 void	send_css(EthernetClient client)
 {
@@ -137,7 +143,9 @@ void	send_html(EthernetClient client)
 	client.println("  </head>");
 	client.println("  <body>");
 	client.println("    <br>");
-	client.println("    <div class='status'>Online</div>");
+
+	show_status(client);
+
 	client.println("    <br>");
 	client.println("    <a class='button_ping' href='ping'>PING</a>");
 	client.println("    <a class='button_short' href='short'>Short</a>");
@@ -148,6 +156,7 @@ void	send_html(EthernetClient client)
 
 void	send_page(EthernetClient client)
 {
+	ping_server();
 	client.println("HTTP/1.1 200 OK");
 	client.println("Content-Type: text/html");
 	client.println();
