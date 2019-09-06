@@ -15,7 +15,7 @@ byte		mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 
 IPAddress	card_ip(192,168,0,150);
 // IPAddress	card_ip(169,254,25,141);
-IPAddress	server_ip(192,168,0,50);
+IPAddress	server_ip(192,168,0,25);
 //IPAddress	server_ip(169,254,25,140);
 
 EthernetServer	server(80);
